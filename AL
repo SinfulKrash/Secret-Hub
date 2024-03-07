@@ -173,33 +173,53 @@ PlayerSec:AddButton({
     end
 })
 
+PlayerSec:AddToggle({
+    Name = "Enable Walkspeed",
+    Default = false,
+    Callback = function(Value)
+        Walkspeeder = (Value)
+    end
+})
 
-PlayerSec:AddButton({
-    Name = "Enable Rollback",
-    Callback = function()
-        while task.wait() do
-            local ohTable1 = {
-                ["1"] = "\255"
-            }
-            game:GetService("ReplicatedStorage").Remotes.Data.UpdateHotbar:FireServer(ohTable1)
-            print("Rollback Setup")
+PlayerSec:AddSlider({
+    Name = "Walkspeed",
+    Min = tonumber(lp.Character.Humanoid.WalkSpeed),
+    Max = 250,
+    Default = tonumber(lp.Character.Humanoid.WalkSpeed),
+    Color = Color3.fromRGB(255, 0, 0),
+    Increment = 1,
+    ValueName = "Walkspeed",
+    Callback = function(Value)
+        while Walkspeeder == true do
+            lp.Character.Humanoid.WalkSpeed = (Value)
+            task.wait()
         end
     end
 })
 
-PlayerSec:AddButton({
-    Name = "Rejoin",
-    Callback = function()
-        local ts = game:GetService("TeleportService")
-        local p = lp
-        ts:TeleportToPlaceInstance(game.PlaceId, game.JobId, p)
+PlayerSec:AddToggle({
+    Name = "Enable JumpPower",
+    Default = false,
+    Callback = function(Value)
+        JumpPowerr = (Value)
     end
 })
 
-local AntiAFK = Misc:AddSection({
-    Name = "Anti-AFK Built In"
+PlayerSec:AddSlider({
+    Name = "JumpPower",
+    Min = tonumber(lp.Character.Humanoid.JumpPower),
+    Max = 250,
+    Default = tonumber(lp.Character.Humanoid.JumpPower),
+    Color = Color3.fromRGB(255, 0, 0),
+    Increment = 1,
+    ValueName = "JumpPower",
+    Callback = function(Value)
+        while JumpPowerr == true do
+            lp.Character.Humanoid.JumpPower = (Value)
+            task.wait()
+        end
+    end
 })
-
 
 
 -- Automation
@@ -435,6 +455,41 @@ Teleports:AddDropdown({
     end
 })
 
+local Misc = Window:MakeTab({
+    Name = "Misc",
+    Icon = "rbxassetid://12614663538",
+    PremiumOnly = false
+})
+
+local Rollback = Misc:AddSection({
+    Name = "Enable then drop the item(s) to another account then rejoin/leave"
+})
+
+Rollback:AddButton({
+    Name = "Enable Rollback",
+    Callback = function()
+        while task.wait() do
+            local ohTable1 = {
+                ["1"] = "\255"
+            }
+            game:GetService("ReplicatedStorage").Remotes.Data.UpdateHotbar:FireServer(ohTable1)
+            print("Rollback Setup")
+        end
+    end
+})
+
+Rollback:AddButton({
+    Name = "Rejoin",
+    Callback = function()
+        local ts = game:GetService("TeleportService")
+        local p = lp
+        ts:TeleportToPlaceInstance(game.PlaceId, game.JobId, p)
+    end
+})
+
+local AntiAFK = Misc:AddSection({
+    Name = "Anti-AFK Built In"
+})
 
 
 -- Combat
