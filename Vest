@@ -296,54 +296,120 @@ if not game:WaitForChild("ReplicatedStorage", 9e9):WaitForChild("Loaded", 9e9).V
  	Groups.AutoStats = Tabs.Main:AddRightGroupbox("Auto Stats")
  	Groups.AutoSell = Tabs.Main:AddRightGroupbox("Auto Sell")
  
- -- Define the serials for each item
- local serials = {
-     ["Red Mushroom"] = "{4cf46483-1b06-4870-bcc8-cc2041b9d22f}{d1772d33-b45b-4e63-a2b7-9433d67afd84}",
-     ["Blue Mushroom"] = "{some-serial-for-blue-mushroom}",
-     ["Green Mushroom"] = "{some-serial-for-green-mushroom}",
-     ["None"] = nil -- This will be used to stop the loop
- }
- 
- -- Auto Sell Tab
- Groups.AutoSell = Tabs.Main:AddRightGroupbox("Auto Sell")
- 
- -- Auto Sell Dropdown
- Groups.AutoSell:AddDropdown('AutoSellDropdown', {
-     Values = { 'Red Mushroom', 'Blue Mushroom', 'Green Mushroom', 'None' }, -- Add your items here
-     Default = 1, -- Default index (1 for 'Red Mushroom')
-     Multi = false, -- Set to true if you want to allow multiple selections
- 
-     Text = 'Select Item to Auto Sell',
-     Tooltip = 'Choose an item to automatically sell when conditions are met.',
- 
-     Callback = function(selectedItem)
-         -- Start a loop to sell the selected item
-         task.spawn(function()
-             while true do
-                 -- Check if the selected item is "None"
-                 if selectedItem == "None" then
-                     break -- Exit the loop if "None" is selected
-                 end
- 
-                 -- Construct the args table based on the selected item
-                 local args = {
-                     [1] = {
-                         [1] = {
-                             ["serial"] = serials[selectedItem], -- Get the serial from the table
-                             ["stacks"] = 1
-                         }
-                     }
-                 }
- 
-                 -- Invoke the remote function to sell the item
-                 game:GetService("ReplicatedStorage"):WaitForChild("network"):WaitForChild("RemoteFunction"):WaitForChild("playerRequest_sellItemsToShop"):InvokeServer(unpack(args))
- 
-                 -- Wait for a short duration before selling again (adjust as needed)
-                 task.wait(1) -- Adjust the wait time as necessary
-             end
-         end)
-     end
- })
+ -- Setup
+_G.itemsToSell = _G.itemsToSell or {
+    ["spider fang"] = true,
+    ["ratty tail"] = true,
+    ["oak axe"] = true
+}
+
+local Main
+local UpdateInv
+
+for i, v in next, getgc(true) do
+    if typeof(v) == "table" and rawget(v, "inventory") then
+        Main = v
+    elseif typeof(v) == "function" and debug.getinfo(v).name == "updateInventory" then
+        UpdateInv = v
+    end
+end
+
+local autoSellEnabled = false
+
+-- Sell Logic
+local function sellWhitelisted()
+    if not Main or not UpdateInv then return end
+    UpdateInv()
+    local itemData = require(game:GetService("ReplicatedStorage"):WaitForChild("itemIds"))
+
+    for _, item in next, Main.inventory do
+        if typeof(item) == "table" then
+            local name = string.lower(itemData[item.id])
+            if _G.itemsToSell[name] and (item.locked == false or item.locked == nil) then
+                game:GetService("ReplicatedStorage").network.RemoteFunction.playerRequest_sellItemsToShop:InvokeServer({
+                    [1] = { serial = item.serial, stacks = item.stacks }
+                })
+                print("Sold:", name)
+            end
+        end
+    end
+end
+
+-- Looping thread
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if autoSellEnabled then
+            sellWhitelisted()
+        end
+    end
+end)
+
+-- === GUI Components ===
+Groups.AutoSell:AddToggle("AutoSellToggle", {
+    Text = "Enable Auto Sell (Whitelist)",
+    Default = false,
+    Tooltip = "Only sells items listed below.",
+    Callback = function(Value)
+        autoSellEnabled = Value
+    end
+})
+
+-- Helper function to update whitelist label
+local function updateWhitelistLabel()
+    local names = {}
+    for k in pairs(_G.itemsToSell) do table.insert(names, k) end
+    Options.WhitelistDisplayLabel:SetText("Current Whitelist:\n" .. table.concat(names, "\n"))
+end
+
+-- Label (live-updating)
+Groups.AutoSell:AddLabel("WhitelistDisplayLabel", {
+    Text = "Current Whitelist:\n" .. table.concat((function()
+        local names = {}
+        for k in pairs(_G.itemsToSell) do table.insert(names, k) end
+        return names
+    end)(), "\n")
+})
+
+-- Add input
+Groups.AutoSell:AddInput("AddWhitelistItem", {
+    Text = "Add to Whitelist",
+    Placeholder = "e.g. Spider Fang",
+    Tooltip = "Adds this item to whitelist (case-insensitive)",
+    Callback = function(item)
+        if item and item ~= "" then
+            local lower = string.lower(item)
+            _G.itemsToSell[lower] = true
+            updateWhitelistLabel()
+            Options.RemoveWhitelistDropdown:SetValues((function()
+                local vals = {}
+                for k in pairs(_G.itemsToSell) do table.insert(vals, k) end
+                return vals
+            end)())
+        end
+    end
+})
+
+-- Remove dropdown
+Groups.AutoSell:AddDropdown("RemoveWhitelistDropdown", {
+    Values = (function()
+        local vals = {}
+        for k in pairs(_G.itemsToSell) do table.insert(vals, k) end
+        return vals
+    end)(),
+    Text = "Remove from Whitelist",
+    Tooltip = "Select an item to remove it",
+    Callback = function(item)
+        _G.itemsToSell[item] = nil
+        updateWhitelistLabel()
+        Options.RemoveWhitelistDropdown:SetValues((function()
+            local vals = {}
+            for k in pairs(_G.itemsToSell) do table.insert(vals, k) end
+            return vals
+        end)())
+    end
+})
+
  
  	if game.PlaceId == 3207211233 then
  		Groups.AutoSQR = Tabs.Main:AddRightGroupbox("SQR")
