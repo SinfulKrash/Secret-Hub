@@ -378,7 +378,7 @@ if not game:WaitForChild("ReplicatedStorage", 9e9):WaitForChild("Loaded", 9e9).V
     	 Text = 'Activate God Mode',
     	 Func = function()
       	   local REPLICATED_STORAGE = cloneref(game:GetService("ReplicatedStorage"))
-       	  local remote = REPLICATED_STORAGE.network.RemoteEvent.playerRequest_damageEntity
+       	  local remote = REPLICATED_STORAGE.network.RemoteEvent.playerRequest_damageEntity_batch
  
         	 remote:Destroy()
    	  end,
